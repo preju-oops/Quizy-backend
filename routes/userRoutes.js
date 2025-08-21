@@ -1,22 +1,23 @@
-var express = require("express");
-
-const {
+import express from "express";
+import { 
   createUserController,
-  getUserController,
   loginHandleController,
-  getUserListController,
-} = require("../controller/userController");
-const { validateTokenMiddleware } = require("../middleware/AuthMiddleware");
-var router = express.Router();
+  getUserListController
+} from "../controller/userController.js";
+
+import { validateTokenMiddleware } from "../middleware/AuthMiddleware.js";
+
+const router = express.Router();
 
 /* GET users listing. */
-router.get("/", function (req, res) {
+router.get("/", (req, res) => {
   res.json({
     message: "User Controller is working",
   });
 });
+
 router.post("/create", createUserController);
 router.post("/login", loginHandleController);
 router.get("/list", validateTokenMiddleware, getUserListController);
 
-module.exports = router;
+export default router;   // ✅ ESM export

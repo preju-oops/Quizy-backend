@@ -1,7 +1,7 @@
-const AnswerModel = require("../model/AnswerModel");
-const QuestionSet = require("../model/QuestionSetModel");
+import AnswerModel from "../model/AnswerModel.js";
+import QuestionSet from "../model/QuestionSetModel.js";
 
-async function listQuestionSetController(req, res) {
+export async function listQuestionSetController(req, res) {
   const questionSet = await QuestionSet.aggregate([
     {
       $project: {
@@ -11,12 +11,10 @@ async function listQuestionSetController(req, res) {
     },
   ]);
 
-  res.json({
-    questionSet: questionSet,
-  });
+  res.json({ questionSet });
 }
 
-async function getQuestionSetController(req, res) {
+export async function getQuestionSetController(req, res) {
   const { id } = req.params;
   const questionSet = await QuestionSet.findById(id).select(
     "-questions.choices.correctAnswer"
@@ -29,16 +27,17 @@ async function getQuestionSetController(req, res) {
   res.json(questionSet);
 }
 
-async function saveAttemptedQuestionController(req, res) {
+export async function saveAttemptedQuestionController(req, res) {
   const { questionSet: questionSetId, responses } = req.body;
   const { id: userId } = req.user;
 
   const questionSet = await QuestionSet.findById(questionSetId).select(
-    "questions._id questions.choices._id questions.choices.correcAnswer"
+    "questions._id questions.choices._id questions.choices.correctAnswer"
   );
 
-  if (!questionSet)
+  if (!questionSet) {
     return res.status(404).json({ message: "QuestionSet not found" });
+  }
 
   const result = (responses || []).reduce(
     (acc, current) => {
@@ -54,31 +53,26 @@ async function saveAttemptedQuestionController(req, res) {
       );
       if (!q) return acc; // skip unknown question ids
 
-      // 2) build the list of correct choice ids using reduce
+      // 2) build the list of correct choice ids
       const correctIds = (q.choices || []).reduce((ids, c) => {
         if (c?.correctAnswer) ids.push(String(c._id));
         return ids;
       }, []);
 
-      // 3) count how many SELECTED are actually CORRECT (using find)
+      // 3) count how many SELECTED are actually CORRECT
       const selected = current.selectedChoiceIds || [];
       const selectedAreCorrectCount = selected.reduce((cnt, selId) => {
-        const hit =
-          correctIds.find((cid) => cid === String(selId)) !== undefined;
+        const hit = correctIds.includes(String(selId));
         return cnt + (hit ? 1 : 0);
       }, 0);
 
-      // 4) count how many CORRECT were actually SELECTED (using find)
+      // 4) count how many CORRECT were actually SELECTED
       const correctSelectedCount = correctIds.reduce((cnt, cid) => {
-        const hit =
-          selected.find((selId) => String(selId) === cid) !== undefined;
+        const hit = selected.includes(String(cid));
         return cnt + (hit ? 1 : 0);
       }, 0);
 
-      // exact match if:
-      //  - every selected is correct, AND
-      //  - every correct was selected, AND
-      //  - lengths line up on both sides
+      // exact match check
       const allSelectedAreCorrect = selectedAreCorrectCount === selected.length;
       const allCorrectWereSelected = correctSelectedCount === correctIds.length;
       const isCorrect = allSelectedAreCorrect && allCorrectWereSelected;
@@ -86,7 +80,6 @@ async function saveAttemptedQuestionController(req, res) {
       acc.total += 1;
       if (isCorrect) acc.score += 1;
 
-      // optional per-question detail (nice for review UI)
       acc.details.push({
         questionId: String(q._id),
         selectedChoiceIds: selected.map(String),
@@ -98,7 +91,7 @@ async function saveAttemptedQuestionController(req, res) {
     { score: 0, total: 0, details: [] }
   );
 
-  const saveAnswerQuestion = await new AnswerModel({
+  const saveAnswerQuestion = new AnswerModel({
     questionSet: questionSetId,
     user: userId,
     responses,
@@ -107,19 +100,13 @@ async function saveAttemptedQuestionController(req, res) {
   });
 
   await saveAnswerQuestion.save();
+
   return res.status(201).json({
     message: "Graded",
     data: {
       score: result.score,
       total: result.total,
-      responses: result.responses,
-      // id: saved?._id,
+      details: result.details, // ⚡ changed from `responses` (bug in your old code)
     },
   });
 }
-
-module.exports = {
-  listQuestionSetController,
-  getQuestionSetController,
-  saveAttemptedQuestionController,
-};

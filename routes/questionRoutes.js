@@ -1,11 +1,12 @@
-var express = require("express");
-const {
+import express from "express";
+import {
   listQuestionSetController,
   getQuestionSetController,
   saveAttemptedQuestionController,
-} = require("../controller/questionController");
-const { validateTokenMiddleware } = require("../middleware/AuthMiddleware");
-var router = express.Router();
+} from "../controller/questionController.js";
+import { validateTokenMiddleware } from "../middleware/AuthMiddleware.js";
+
+const router = express.Router();
 
 router.get("/set/list", validateTokenMiddleware, listQuestionSetController);
 router.get("/set/:id", validateTokenMiddleware, getQuestionSetController);
@@ -15,4 +16,4 @@ router.post(
   saveAttemptedQuestionController
 );
 
-module.exports = router;
+export default router;   // ✅ use ESM export
