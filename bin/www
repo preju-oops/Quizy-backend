@@ -1,46 +1,52 @@
 #!/usr/bin/env node
 
-import dotenv from "dotenv";
-import app from "../app.js";     // <-- ES module import
-import debugLib from "debug";
-import http from "http";
+require("dotenv").config();
+var app = require("../app");
+var debug = require("debug")("backend:server");
+var http = require("http");
 
-dotenv.config();
-
-const debug = debugLib("backend:server");
-const port = normalizePort(process.env.PORT || "3000");
+var port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
 
-const server = http.createServer(app);
+var server = http.createServer(app);
 
 server.listen(port);
-server.on("error", onError);
+server.on("error", (error) => onError(error, server));
 server.on("listening", onListening);
 
 function normalizePort(val) {
-  const port = parseInt(val, 10);
+  var port = parseInt(val, 10);
   if (isNaN(port)) return val; // named pipe
   if (port >= 0) return port;  // port number
   return false;
 }
 
-function onError(error) {
-  if (error.syscall !== "listen") throw error;
-  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+function onError(error, serverInstance) {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+
   switch (error.code) {
     case "EACCES":
       console.error(bind + " requires elevated privileges");
       process.exit(1);
+      break;
     case "EADDRINUSE":
-      console.error(bind + " is already in use");
-      process.exit(1);
+      console.error(bind + " is already in use, trying next port...");
+      port = Number(port) + 1;            // increment port
+      app.set("port", port);
+      serverInstance.listen(port);        // retry with new port
+      break;
     default:
       throw error;
   }
 }
 
 function onListening() {
-  const addr = server.address();
-  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  var addr = server.address();
+  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
   debug("Listening on " + bind);
+  console.log("✅ Server running at http://localhost:" + addr.port);
 }

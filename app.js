@@ -1,25 +1,15 @@
-import express from "express";
-import path from "path";
-import cookieParser from "cookie-parser";
-import logger from "morgan";
-import cors from "cors";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+var express = require("express");
+var path = require("path");
+var cookieParser = require("cookie-parser");
+var logger = require("morgan");
+var cors = require("cors");
 
-import indexRouter from "./routes/index.js";
-import usersRouter from "./routes/userRoutes.js";
-import adminRouter from "./routes/adminRoutes.js";
-import questionRouter from "./routes/questionRoutes.js";
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/userRoutes");
+var adminRouter = require("./routes/adminRoutes");
+var questionRouter = require("./routes/questionRoutes");
 
-dotenv.config();
-
-// Fix __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const app = express();
+var app = express();
 
 // Middleware
 app.use(cors());
@@ -30,23 +20,25 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Routes
-app.get("/", (req, res) => {
-  res.send("Hello MongoDB Atlas!");
-});
-
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/api/users", usersRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/questions", questionRouter);
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI, { dbName: "professor_database" })
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ DB connection error:", err));
+// MongoDB connection
+const mongoose = require("mongoose");
 
-app.listen(process.env.PORT, () => {
-  console.log(`🚀 Server running on port ${process.env.PORT}`);
-});
+async function main() {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      dbName: "professor_database",
+    });
+    console.log("Database connected successfully:", conn.connection.name);
+  } catch (err) {
+    console.error("Database connection failed:", err.message);
+    process.exit(1);
+  }
+}
+main();
 
-export default app;
+module.exports = app;

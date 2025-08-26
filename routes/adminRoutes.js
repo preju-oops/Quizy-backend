@@ -1,9 +1,10 @@
-import express from "express";
-import { createQuestionSetController } from "../controller/adminController.js";
-import { validateTokenMiddleware } from "../middleware/AuthMiddleware.js";
-import { adminOnlyMiddleware } from "../middleware/RoleMiddleware.js";
-
-const router = express.Router();
+var express = require("express");
+const {
+  createQuestionSetController,
+} = require("../controller/adminController");
+const { validateTokenMiddleware } = require("../middleware/AuthMiddleware");
+const { adminOnlyMiddleware } = require("../middleware/RoleMiddleware");
+var router = express.Router();
 
 router.post(
   "/questionset/create",
@@ -12,4 +13,4 @@ router.post(
   createQuestionSetController
 );
 
-export default router;   // ✅ ESM export
+module.exports = router;

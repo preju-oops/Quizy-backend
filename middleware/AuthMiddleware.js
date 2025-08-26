@@ -1,34 +1,33 @@
-const { verify } = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
 function validateTokenMiddleware(req, res, next) {
-  const rawAccessToken = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-  if (!rawAccessToken) {
+  if (!authHeader) {
     return res.status(401).json({
-      message: "User is not Authenticated",
+      message: "Authorization header missing. Please log in again.",
     });
   }
 
-  const accessToken = req.headers.authorization.split(" ")[1];
+  const token = authHeader.split(" ")[1]; // "Bearer <token>"
 
-  if (!accessToken || accessToken === "null") {
+  if (!token || token === "null") {
     return res.status(401).json({
-      message: "User is not Authenticated",
+      message: "Token missing. Please log in again.",
     });
   }
 
-  const verifyToken = verify(accessToken, process.env.AUTH_SECRET_KEY);
+  try {
+    const decoded = jwt.verify(token, process.env.AUTH_SECRET_KEY);
 
-  if (verifyToken) {
-    req.user = verifyToken;
+    // Attach decoded token to request
+    req.user = decoded;
     next();
-  } else {
-    return res.status(401).json({
-      message: "User is not Authenticated",
+  } catch (err) {
+    return res.status(403).json({
+      message: "Token invalid or expired. Please log in again.",
     });
   }
 }
 
-module.exports = {
-  validateTokenMiddleware,
-};
+module.exports = { validateTokenMiddleware };

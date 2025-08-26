@@ -1,23 +1,41 @@
-import express from "express";
-import { 
+var express = require("express");
+
+const {
   createUserController,
+  getUserController,
   loginHandleController,
-  getUserListController
-} from "../controller/userController.js";
-
-import { validateTokenMiddleware } from "../middleware/AuthMiddleware.js";
-
-const router = express.Router();
+  getUserListController,
+  viewMyProfileController,
+  viewProfileofUserController,
+  updateProfileMeController,
+} = require("../controller/userController");
+const { validateTokenMiddleware } = require("../middleware/AuthMiddleware");
+const { uploadMiddleware } = require("../middleware/FileHandleMiddleware");
+var router = express.Router();
 
 /* GET users listing. */
-router.get("/", (req, res) => {
+router.get("/", function (req, res) {
   res.json({
     message: "User Controller is working",
   });
 });
-
 router.post("/create", createUserController);
 router.post("/login", loginHandleController);
 router.get("/list", validateTokenMiddleware, getUserListController);
 
-export default router;   // ✅ ESM export
+router.put(
+  "/profile",
+  validateTokenMiddleware,
+  uploadMiddleware.single("profileImg"),
+  updateProfileMeController
+);
+
+router.get("/profile/me", validateTokenMiddleware, viewMyProfileController);
+router.get(
+  "/profile/:id",
+  validateTokenMiddleware,
+
+  viewProfileofUserController
+);
+
+module.exports = router;
